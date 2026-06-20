@@ -1,4 +1,4 @@
-#![feature(lock_value_accessors)]
+// #![feature(lock_value_accessors)]
 #![allow(static_mut_refs)]
 use std::{
     os::raw,
@@ -8,7 +8,12 @@ use std::{
 
 use embedded_graphics::{Drawable, draw_target::DrawTarget, pixelcolor::Rgb565, prelude::*};
 use embedded_graphics_doom::{ScreenBuffer, colors, create, tick};
-use embedded_graphics_simulator::{OutputSettingsBuilder, SimulatorDisplay, Window};
+use embedded_graphics_simulator::{
+    OutputSettingsBuilder, SimulatorDisplay, SimulatorEvent, Window,
+};
+
+const WINDOW_X: usize = 256;
+const WINDOW_Y: usize = 64;
 
 const X: usize = 320;
 const Y: usize = 200;
@@ -34,9 +39,16 @@ extern "C" fn DG_DrawFrame() {
     let display = unsafe { DISPLAY.as_mut().unwrap() };
     display.clear(Rgb565::BLACK).unwrap();
 
-    for y in 0..Y {
-        for x in 0..X {
-            let idx = y * X + x;
+    const SCALE_FACTOR: f32 = (WINDOW_X as f32 / X as f32).min(WINDOW_Y as f32 / Y as f32);
+    const SCALED_RENDER_WIDTH: usize = (X as f32 * SCALE_FACTOR) as usize;
+    const SCALED_RENDER_HEIGHT: usize = (Y as f32 * SCALE_FACTOR) as usize;
+
+    let scale_fn = |n: usize| -> usize { (n as f32 / SCALE_FACTOR) as usize };
+
+    for y in 0..SCALED_RENDER_HEIGHT {
+        for x in 0..SCALED_RENDER_WIDTH {
+            let idx = scale_fn(y) * X + scale_fn(x);
+            // println!("{},{}  -->  {},{}", x, y, scale_fn(x), scale_fn(y));
             let color = palette565[buf[idx] as usize];
 
             Pixel(Point::new(x as i32, y as i32), color)
@@ -67,11 +79,11 @@ extern "C" fn DG_SleepMs(ms: u32) {
 }
 
 fn main() {
-    let output_settings = OutputSettingsBuilder::new().build();
+    let output_settings = OutputSettingsBuilder::new().scale(6).build();
     let mut window = Window::new("Doom Embedded_Graphics", &output_settings);
 
     unsafe { START = Some(Instant::now()) };
-    let display = SimulatorDisplay::<Rgb565>::new(Size::new(X as u32, Y as u32));
+    let display = SimulatorDisplay::<Rgb565>::new(Size::new(WINDOW_X as u32, WINDOW_Y as u32));
     unsafe { DISPLAY = Some(display) };
 
     unsafe { create(&SCREEN_BUFFER) };
@@ -79,5 +91,8 @@ fn main() {
     loop {
         tick();
         window.update(unsafe { &DISPLAY.as_ref().unwrap() });
+        if window.events().any(|e| e == SimulatorEvent::Quit) {
+            break;
+        }
     }
 }
