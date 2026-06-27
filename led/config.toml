@@ -1,0 +1,13 @@
+[led_config]
+rows=64
+cols=64
+chain_length = 2
+num_chains = 2
+pwm_bits = 9
+pwm_lsb_ns = 130
+pwm_dither_bits = 0
+gpio_slowdown = 3 # TODO try with 2
+
+pixel_mappers = ["ChainLink", "Rotate:180"]
+brightness = 40
+

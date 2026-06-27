@@ -1,0 +1,11 @@
+[package]
+name = "led"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+embedded-graphics = "0.8.1"
+embedded_graphics_doom = { path = "../" }
+rpi-led-panel = "0.8.1"
+serde = "1.0.228"
+toml = "1.1.2"
